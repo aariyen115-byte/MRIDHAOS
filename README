@@ -118,3 +118,114 @@ nmcli connection up "mywifi"
 
 | `nmtui` | Open interactive terminal menu to scan and connect to any Wi-Fi network |
 
+# MRIDHAOS
+
+**MRIDHAOS** is a lightweight, USB-bootable and dual-bootable Linux operating system designed for hobbyists, programmers, and privacy-focused users. It boots into a fast, distraction-free terminal with full console mouse support (`gpm`), classic **BASIC** programming, and on-demand graphical applications (**Firefox**, **Steam**, **LibreOffice**, and **File Managers**) that launch only when you call them—closing straight back to the terminal when finished.
+
+---
+
+## Download
+
+* **Download ISO (Zipped):** [MRIDHAOS-v1.0.zip (64-bit x86_64)](https://github.com)
+* **Supported Hardware:**
+  * Any 64-bit (`x86_64` / `amd64`) Intel or AMD laptop or desktop (UEFI or Legacy BIOS).
+  * Includes universal X11 display drivers (Intel, AMD, NVIDIA/Nouveau, VESA) and `linux-firmware` for Wi-Fi/Bluetooth.
+  * **Minimum Specs:** 2 GB RAM (4 GB+ recommended for Firefox and Steam), 8 GB+ USB flash drive (16 GB–32 GB+ recommended for encrypted persistence).
+  * **Important:** Disable **Secure Boot** in your PC's BIOS/UEFI before booting from USB. Does not support ARM devices (Apple M1/M2/M3/M4 or Raspberry Pi).
+
+---
+
+## Built-In Commands
+
+MRIDHAOS boots into a pure text console with mouse cursor support. Run any command below on demand:
+
+| Command | Description |
+| :--- | :--- |
+| `basic` | Launch the **Bywater BASIC** interpreter (`~/scripts`) |
+| `fm` | Open **Midnight Commander** (terminal file manager with mouse support) |
+| `files` | Launch **PCManFM** graphical file manager |
+| `web` | Launch graphical **Firefox** browser |
+| `game` | Launch graphical **Steam** client |
+| `office` | Launch **LibreOffice** suite hub |
+| `write [file.docx]` | Launch **LibreOffice Writer** (Word Processor) |
+| `calc [file.xlsx]` | Launch **LibreOffice Calc** (Spreadsheets) |
+| `slides [file.pptx]` | Launch **LibreOffice Impress** (Presentations) |
+| `pdf <file.pdf>` | Open **Atril** PDF viewer |
+| `nmtui` | Open interactive terminal menu to scan and connect to any Wi-Fi network |
+| `sudo install-mridhaos` | Install MRIDHAOS onto an internal drive partition (dual-boot safe) |
+| `sudo poweroff` | Safely shut down and lock encrypted storage |
+
+---
+
+## Option 1: Flash to USB & Set Up LUKS2 Encryption
+
+### 1. Unzip & Flash `MRIDHAOS.iso` to Your USB Drive
+Replace `/dev/sdX` with your actual USB drive (check with `lsblk` first—do **not** pick your internal hard drive):
+
+```bash
+unzip MRIDHAOS-v1.0.zip
+sudo umount /dev/sdX* 2>/dev/null
+sudo dd if=MRIDHAOS.iso of=/dev/sdX bs=4M status=progress && sync
+```
+
+### 2. Create an Encrypted Persistent Storage Partition (LUKS2)
+1. **Create a new partition in the remaining free space on your USB stick:**
+   ```bash
+   echo -e "n\np\n\n\n\nw" | sudo fdisk /dev/sdX
+   sudo partprobe /dev/sdX
+   lsblk /dev/sdX
+   ```
+   *(Note the name of the new partition at the bottom, e.g., `/dev/sdX5` or `/dev/sdX3`.)*
+
+2. **Encrypt the partition with LUKS2 (AES-256-XTS + Argon2id):**
+   *(Type `YES` in uppercase when prompted, then enter your chosen passphrase twice.)*
+   ```bash
+   sudo cryptsetup luksFormat --type luks2 \
+       --cipher aes-xts-plain64 --key-size 512 \
+       --hash sha512 --pbkdf argon2id \
+       /dev/sdX5
+   ```
+
+3. **Format the unlocked partition as `persistence`:**
+   ```bash
+   sudo cryptsetup open /dev/sdX5 mridha_crypt
+   sudo mkfs.ext4 -L persistence /dev/mapper/mridha_crypt
+   sudo mount /dev/mapper/mridha_crypt /mnt
+   echo "/ union" | sudo tee /mnt/persistence.conf
+   sudo umount /mnt
+   sudo cryptsetup close mridha_crypt
+   sync
+   ```
+
+---
+
+## Option 2: Dual-Boot Install to an Internal Hard Drive / SSD
+
+You can install MRIDHAOS permanently onto an existing spare partition without wiping Windows or another Linux distro:
+
+1. Boot MRIDHAOS from your USB drive.
+2. Run the built-in partition installer:
+   ```bash
+   sudo install-mridhaos
+   ```
+3. Enter your spare partition name (e.g., `sda8` or `nvme0n1p5`).
+4. Choose **`y`** to let MRIDHAOS install GRUB (with `os-prober` enabled to keep your other OSes), or choose **`n`** if you already use Ubuntu/Linux Mint's GRUB (then reboot into your main Linux OS and run `sudo update-grub`).
+
+---
+
+## How to Change or Add a New Encryption Password
+
+LUKS2 supports up to **8 independent key slots** on your encrypted USB partition (`/dev/sdX5`):
+
+* **Change your current password:**
+  ```bash
+  sudo cryptsetup luksChangeKey /dev/sdX5
+  ```
+* **Add a second (backup recovery) password:**
+  ```bash
+  sudo cryptsetup luksAddKey /dev/sdX5
+  ```
+* **Remove an old password:**
+  ```bash
+  sudo cryptsetup luksRemoveKey /dev/sdX5
+  ```
