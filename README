@@ -116,3 +116,5 @@ nmcli connection add type wifi con-name "mywifi" ifname "*" ssid "YOUR_WIFI_NAME
 nmcli connection up "mywifi"
 ```
 
+| `nmtui` | Open interactive terminal menu to scan and connect to any Wi-Fi network |
+
