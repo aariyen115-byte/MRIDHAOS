@@ -104,3 +104,15 @@ sudo cryptsetup luksAddKey /dev/sdX5
 sudo cryptsetup luksRemoveKey /dev/sdX5
 ```
 *(Enter the passphrase you want to delete—make sure at least one valid passphrase remains.)*
+### Connecting to Wi-Fi
+
+Because MRIDHAOS runs in a pure terminal without a desktop keyring, connect to Wi-Fi using:
+
+```bash
+nmcli connection add type wifi con-name "mywifi" ifname "*" ssid "YOUR_WIFI_NAME" \
+    wifi-sec.key-mgmt wpa-psk \
+    wifi-sec.psk-flags 0 \
+    wifi-sec.psk "YOUR_PASSWORD"
+nmcli connection up "mywifi"
+```
+
